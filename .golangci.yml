@@ -1,0 +1,9 @@
+severity:
+  default-severity: major
+  rules:
+    - linters:
+        - whitespace
+      severity: info
+    - linters:
+        - revive
+      severity: minor
