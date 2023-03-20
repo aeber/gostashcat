@@ -289,7 +289,7 @@ func (api *Client) DecryptMessages(messages []Message, encryptedKey string) ([]M
 			if m.Kind != "message" || !m.Encrypted {
 				continue
 			}
-			text, err := decryptAES(m.Text, m.IV, decryptedKey)
+			text, err := decryptAESHex(m.Text, m.IV, decryptedKey)
 			if err != nil {
 				return nil, err
 			}

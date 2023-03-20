@@ -283,6 +283,23 @@ func (api *Client) postRequest(ctx context.Context, path string, values url.Valu
 	return resp, nil
 }
 
+func (api *Client) postRequestMultipart(ctx context.Context, path, boundary string, body io.Reader) (*http.Response, error) {
+	request, err := http.NewRequestWithContext(ctx, "POST", api.config.APIURL+path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
+
+	resp, err := api.httpclient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	// resp.Body gets closed in unmarshalStatus
+
+	return resp, nil
+}
+
 func (api *Client) unmarshalStatus(resp *http.Response) ([]byte, bool, error) {
 	defer resp.Body.Close()
 

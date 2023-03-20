@@ -47,15 +47,7 @@ func encryptAES(plaintext []byte, encryptionKey []byte) (string, string, error) 
 	return hex.EncodeToString(ciphertext[aes.BlockSize:]), hex.EncodeToString(iv), nil
 }
 
-func decryptAES(ct string, i string, key []byte) (string, error) {
-	ciphertext, err := hex.DecodeString(ct)
-	if err != nil {
-		return "", err
-	}
-	iv, err := hex.DecodeString(i)
-	if err != nil {
-		return "", err
-	}
+func decryptAES(ciphertext, iv, key []byte) (string, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -82,4 +74,17 @@ func decryptAES(ct string, i string, key []byte) (string, error) {
 	}
 
 	return string(plaintext[:length-padLen]), nil
+}
+
+func decryptAESHex(ct string, i string, key []byte) (string, error) {
+	ciphertext, err := hex.DecodeString(ct)
+	if err != nil {
+		return "", err
+	}
+	iv, err := hex.DecodeString(i)
+	if err != nil {
+		return "", err
+	}
+
+	return decryptAES(ciphertext, iv, key)
 }

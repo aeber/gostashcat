@@ -18,7 +18,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Could not encrypt: %v\n", err)
 	}
 
-	newPlainText, err := decryptAES(ct, iv, []byte(key))
+	newPlainText, err := decryptAESHex(ct, iv, []byte(key))
 	if err != nil {
 		t.Fatalf("Could not decrypt: %v\n", err)
 	}
