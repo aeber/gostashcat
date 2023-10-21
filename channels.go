@@ -42,7 +42,7 @@ type ChannelInfoRadikal struct {
 	// Password
 	Encrypted                bool           `json:"encrypted"`
 	LastAction               string         `json:"last_action"`
-	LastActivity             string         `json:"last_activity"`
+	LastActivity             FlexInt        `json:"last_activity"`
 	Writable                 string         `json:"writable"`
 	Inviteable               string         `json:"inviteable"`
 	CanLeave                 bool           `json:"can_leave"`
