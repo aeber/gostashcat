@@ -46,24 +46,51 @@ type UserIDKeyCombination struct {
 	UserKey string
 }
 
+type ReplyTo struct {
+	MessageId           int    `json:"message_id,omitempty"`
+	MessageHash         string `json:"message_hash,omitempty"`
+	MessageVerification string `json:"message_verification,omitempty"`
+}
+
+func (rt *ReplyTo) UnmarshalJSON(b []byte) error {
+	var i int
+	if err := json.Unmarshal(b, &i); err == nil {
+		*rt = ReplyTo{MessageId: i}
+		return nil
+	}
+
+	type localReplyTo ReplyTo
+	var o localReplyTo
+	if err := json.Unmarshal(b, &o); err != nil {
+		return err
+	}
+	*rt = ReplyTo{
+		MessageId:           o.MessageId,
+		MessageHash:         o.MessageHash,
+		MessageVerification: o.MessageVerification,
+	}
+	return nil
+}
+
 type Message struct {
-	ID             int    `json:"id"`
-	Text           string `json:"text"`
-	ConversationID int    `json:"conversation_id,omitempty"`
-	ChannelID      int    `json:"channel_id,omitempty"`
-	ThreadID       int    `json:"thread_id,omitempty"`
-	Hash           string `json:"hash"`
-	Verification   string `json:"verification"`
-	Sender         User   `json:"sender"`
-	IV             string `json:"iv"`
-	Alarm          bool   `json:"alarm"`
-	Kind           string `json:"kind"`
-	Encrypted      bool   `json:"encrypted"`
-	SendTime       int    `json:"time,string"`
-	DeleteTime     int    `json:"deleted,string,omitempty"`
-	IsForwarded    bool   `json:"is_forwarded"`
-	DeviceID       string `json:"devicce_id"`
-	Type           string `json:"type"`
+	ID             int     `json:"id"`
+	Text           string  `json:"text"`
+	ConversationID int     `json:"conversation_id,omitempty"`
+	ChannelID      int     `json:"channel_id,omitempty"`
+	ThreadID       int     `json:"thread_id,omitempty"`
+	Hash           string  `json:"hash"`
+	Verification   string  `json:"verification"`
+	Sender         User    `json:"sender"`
+	IV             string  `json:"iv"`
+	Alarm          bool    `json:"alarm"`
+	Kind           string  `json:"kind"`
+	Encrypted      bool    `json:"encrypted"`
+	SendTime       int     `json:"time,string"`
+	DeleteTime     int     `json:"deleted,string,omitempty"`
+	IsForwarded    bool    `json:"is_forwarded"`
+	DeviceID       string  `json:"devicce_id"`
+	Type           string  `json:"type"`
+	ReplyTo        ReplyTo `json:"reply_to,omitempty"`
 }
 
 type MessageResponsePayload struct {
@@ -318,6 +345,20 @@ func (api *Client) decodeMessages(messages []map[string]interface{}) ([]Message,
 	}
 
 	return responseMessages, nil
+}
+
+func (api *Client) GetMessageByHash(hash string) (Message, error) {
+	v := url.Values{}
+	v.Set("client_key", api.clientKey)
+	v.Set("device_id", api.deviceID)
+	v.Set("hash", hash)
+	response := MessageResponse{}
+	err := api.postMethod("message/hash", v, &response)
+	if err != nil {
+		return Message{}, err
+	}
+
+	return response.Payload.Message, nil
 }
 
 func (api *Client) GetChannelContent(channel ChannelInfo, limit, offset int) ([]Message, error) {
