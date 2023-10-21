@@ -3,9 +3,9 @@ package gostashcat
 import (
 	"context"
 	"crypto/rsa"
-	"crypto/x509"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
@@ -17,7 +17,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go.step.sm/crypto/pemutil"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type ClientConfig struct {
@@ -224,8 +225,16 @@ func (api *Client) Check() (bool, error) {
 	return response.Payload.Success, nil
 }
 
+type KeyDerivationProperties struct {
+	Iterations int    `json:"iterations"`
+	Prf        string `json:"prf"`
+	Salt       string `json:"salt"`
+}
+
 type NestedKey struct {
-	Private string `json:"private"`
+	Ciphertext string                  `json:"ciphertext"`
+	IV         string                  `json:"iv"`
+	KDP        KeyDerivationProperties `json:"key_derivation_properties"`
 }
 
 // LoadPrivateKey retrieves the encrypted private key and decrypts it
@@ -233,6 +242,8 @@ func (api *Client) LoadPrivateKey(encryptionPassword string) error {
 	v := url.Values{}
 	v.Set("client_key", api.clientKey)
 	v.Set("device_id", api.deviceID)
+	v.Set("format", "jwk")
+	v.Set("type", "encryption")
 
 	response := PrivateKeyResponse{}
 	err := api.postMethod("security/get_private_key", v, &response)
@@ -248,21 +259,43 @@ func (api *Client) LoadPrivateKey(encryptionPassword string) error {
 		return err
 	}
 
-	privPem, _ := pem.Decode([]byte(nestedKey.Private))
-
-	privPemBytes, err := pemutil.DecryptPKCS8PrivateKey(privPem.Bytes, []byte(encryptionPassword))
+	salt, err := base64.StdEncoding.DecodeString(nestedKey.KDP.Salt)
 	if err != nil {
-		api.Debugln("Decryption of PEM block failed")
+		api.Debugln("Decoding of salt from base64 failed")
 		return err
 	}
 
-	parsedKey, err := x509.ParsePKCS8PrivateKey(privPemBytes)
+	derivedKey := pbkdf2.Key([]byte(encryptionPassword), salt, nestedKey.KDP.Iterations, 32, sha256.New)
+
+	iv, err := base64.StdEncoding.DecodeString(nestedKey.IV)
 	if err != nil {
-		api.Debugln("Parsing of private key failed")
+		api.Debugln("Decoding of private key iv from base64 failed")
 		return err
 	}
 
-	api.privateKey = *parsedKey.(*rsa.PrivateKey)
+	decodedCiphertext, err := base64.StdEncoding.DecodeString(nestedKey.Ciphertext)
+	if err != nil {
+		api.Debugln("Decoding of ciphertext from base64 failed")
+		return err
+	}
+
+	cipherJWK, err := decryptAES(decodedCiphertext, iv, derivedKey)
+	if err != nil {
+		api.Debugln("Decryption of private key failed")
+		return err
+	}
+
+	privkey, err := jwk.ParseKey([]byte(cipherJWK))
+	if err != nil {
+		api.Debugln("Decoding of jwk failed")
+		return err
+	}
+
+	err = privkey.Raw(&api.privateKey)
+	if err != nil {
+		api.Debugln("Converting of JWK to rsa.PrivateKey failed")
+		return err
+	}
 	return nil
 }
 
