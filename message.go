@@ -73,24 +73,28 @@ func (rt *ReplyTo) UnmarshalJSON(b []byte) error {
 }
 
 type Message struct {
-	ID             int     `json:"id"`
-	Text           string  `json:"text"`
-	ConversationID int     `json:"conversation_id,omitempty"`
-	ChannelID      int     `json:"channel_id,omitempty"`
-	ThreadID       int     `json:"thread_id,omitempty"`
-	Hash           string  `json:"hash"`
-	Verification   string  `json:"verification"`
-	Sender         User    `json:"sender"`
-	IV             string  `json:"iv"`
-	Alarm          bool    `json:"alarm"`
-	Kind           string  `json:"kind"`
-	Encrypted      bool    `json:"encrypted"`
-	SendTime       int     `json:"time,string"`
-	DeleteTime     int     `json:"deleted,string,omitempty"`
-	IsForwarded    bool    `json:"is_forwarded"`
-	DeviceID       string  `json:"devicce_id"`
-	Type           string  `json:"type"`
-	ReplyTo        ReplyTo `json:"reply_to,omitempty"`
+	ID             int    `json:"id"`
+	Text           string `json:"text"`
+	ConversationID int    `json:"conversation_id,omitempty"`
+	ChannelID      int    `json:"channel_id,omitempty"`
+	ThreadID       int    `json:"thread_id,omitempty"`
+	Hash           string `json:"hash"`
+	Verification   string `json:"verification"`
+	Sender         User   `json:"sender"`
+	IV             string `json:"iv"`
+	Alarm          bool   `json:"alarm"`
+	Kind           string `json:"kind"`
+	Encrypted      bool   `json:"encrypted"`
+	// SendTime is the unix timestamp for when the message was send
+	// Depending on in what response this field is present it's either
+	// encoded as a string (e.g. when requesting the contents of a channel)
+	// or encoded as an integer (e.g. in the response to sending a message)
+	SendTime    FlexInt `json:"time"`
+	DeleteTime  int     `json:"deleted,string,omitempty"`
+	IsForwarded bool    `json:"is_forwarded"`
+	DeviceID    string  `json:"devicce_id"`
+	Type        string  `json:"type"`
+	ReplyTo     ReplyTo `json:"reply_to,omitempty"`
 }
 
 type MessageResponsePayload struct {
