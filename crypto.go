@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -29,11 +30,9 @@ func encryptAES(plaintext []byte, encryptionKey []byte) (string, string, error) 
 		return "", "", err
 	}
 
-	if len(plaintext)%aes.BlockSize != 0 {
-		padLength := aes.BlockSize - (len(plaintext) % aes.BlockSize)
-		padding := bytes.Repeat([]byte{byte(padLength)}, padLength)
-		plaintext = append(plaintext, padding...)
-	}
+	padLength := aes.BlockSize - (len(plaintext) % aes.BlockSize)
+	padding := bytes.Repeat([]byte{byte(padLength)}, padLength)
+	plaintext = append(plaintext, padding...)
 
 	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
 	iv := ciphertext[:aes.BlockSize]
@@ -69,8 +68,14 @@ func decryptAES(ciphertext, iv, key []byte) (string, error) {
 	}
 	padLen := int(plaintext[length-1])
 	pad := bytes.Repeat([]byte{byte(padLen)}, padLen)
-	if padLen > aes.BlockSize || padLen == 0 || !bytes.HasSuffix(plaintext, pad) {
-		return "", errors.New("pkcs7 unpad: invalid padding")
+	if padLen > aes.BlockSize {
+		return "", errors.New(fmt.Sprintf("pkcs7 unpad: padding length larger than block size (%d > %d)", padLen, aes.BlockSize))
+	}
+	if padLen == 0 {
+		return "", errors.New("pkcs7 unpad: padding length == 0")
+	}
+	if !bytes.HasSuffix(plaintext, pad) {
+		return "", errors.New("pkcs7 unpad: padding suffix not found")
 	}
 
 	return string(plaintext[:length-padLen]), nil
