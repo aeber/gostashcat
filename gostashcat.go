@@ -397,7 +397,7 @@ func (api *Client) doPostRequest(path string, values url.Values, intf interface{
 	if err != nil {
 		return err
 	}
-	if authExpired {
+	if authExpired && retry {
 		api.Debugln("Login expired, retrying")
 		// if authentication expired, relogin and retry the request once
 		err = api.Login()
