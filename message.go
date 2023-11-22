@@ -135,7 +135,11 @@ func (api *Client) CreateConversation(users []User) (Conversation, error) {
 
 	members := []IDKeyCombo{}
 	for _, elem := range users {
+
 		block, _ := pem.Decode([]byte(elem.PublicKey))
+		if block == nil {
+			return Conversation{}, fmt.Errorf("User %s has no valid public key", elem.ID)
+		}
 		pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
 		if err != nil {
 			return Conversation{}, err
