@@ -202,6 +202,13 @@ func (api *Client) Login() error {
 		api.Debugf("Saved client key to cachefile: %s\n", api.config.CacheClientKeyPath)
 	}
 
+	userMe, err := api.GetUserMe()
+	if err != nil {
+		return err
+	}
+
+	api.UserInfo = userMe
+
 	return nil
 }
 
